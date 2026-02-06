@@ -3,12 +3,13 @@ import h5py
 from h5py import File as h5File
 import numpy as np
 import shutil
+from scipy.interpolate import LinearNDInterpolator
 
 source_dir: Path = Path("/anvil/projects/x-ees240016/TurbChannelInit/")
 dest_dir: Path = Path("/anvil/scratch/x-lwidmer/RUN13")
 
 
-def main() -> None:
+def simple() -> None:
 
     filename: str = "Data_100.h5"
     print(f'Using source file at "{source_dir / filename}"')
@@ -35,7 +36,66 @@ def main() -> None:
             del vel_extended
     print(f'Completed domain size extension of "{dest_dir / filename}"')
 
+def interp() -> None:
+
+    domain_factor_x: float = 2
+    domain_factor_z: float = 2
+    ny: int = 288
+
+    nx_original: int = 1116
+    ny_original: int = 372
+    nz_original: int = 558
+    xmax_original: float = 6
+    ymax: float = 2
+    zmax_original: float = 3
+
+    grid_scaling: float = float(ny) / float(ny_original)
+    nx_float: float = nx_original*domain_factor_x * grid_scaling
+    nz_float: float = nz_original*domain_factor_z * grid_scaling
+    if nx_float % 1 != 0.0:
+        raise ValueError(f'number of gridpoints in x is not integer: nx_float={nx_float}')
+    if nz_float != 0.0:
+        raise ValueError(f'number of gridpoints in x is not integer: nx_float={nx_float}')
+    nx: int = int(nx_float)
+    nz: int = int(nz_float)
+    xmax: float =  xmax_original * domain_factor_x
+    zmax: float =  zmax_original * domain_factor_z
+
+    x_original: np.ndarray = np.linspace(0, xmax_original, nx_original)
+    y_original: np.ndarray = np.linspace(0, ymax, ny_original)
+    z_original: np.ndarray = np.linspace(0, zmax_original, nz_original)
+
+    x: np.ndarray = np.linspace(0, xmax, nx)
+    y: np.ndarray = np.linspace(0, ymax, ny)
+    z: np.ndarray = np.linspace(0, zmax, nz)
+
+    X: np.ndarray
+    Y: np.ndarray
+    Z: np.ndarray
+    Z, Y, X = np.meshgrid(z, y, x)
+
+    filename: str = "Data_100.h5"
+    print(f'Using source file at "{source_dir / filename}"')
+    shutil.copy2(source_dir / filename, dest_dir / filename)
+    print(f'Coppied source file to "{dest_dir / filename}"')
+
+    original_file: h5File
+    with (
+        h5py.File(source_dir / filename, "r") as original_file,
+        h5py.File(dest_dir / filename, "w") as dest_file,
+    ):
+        for key_char in ["p", "u", "v", "w"]:
+            original: np.ndarray = original_file[vel_char][()]  # type: ignore
+            print(f'Original shape: {{{original.shape}}}')
+            interp = LinearNDInterpolator(list(zip(z_original, y_original, x_original)), original)
+            extended: np.ndarray = interp(Z, Y, X)
+            print(f'New shape: {{{extended.shape}}}')
+            del original
+            dest_file[key_char] = extended
+            del extended
+    print(f'Completed domain size extension / interpolation of "{dest_dir / filename}"')
+
 
 
 if __name__ == "__main__":
-    main()
+    interp()
