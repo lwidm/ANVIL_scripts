@@ -67,11 +67,11 @@ def interp() -> None:
     y_original = np.linspace(0, ymax, ny_original + 1)
     z_original = np.linspace(0, zmax_original, nz_original + 1)
 
-    x = np.linspace(0, xmax, nx + 1)
-    y = np.linspace(0, ymax, ny + 1)
-    z = np.linspace(0, zmax, nz + 1)
+    x_interp = np.linspace(0, xmax_original, nx + 1)
+    y_interp = np.linspace(0, ymax, ny + 1)
+    z_interp = np.linspace(0, zmax_original, nz + 1)
 
-    Z, Y, X = np.meshgrid(z, y, x, indexing="ij")
+    Z, Y, X = np.meshgrid(z_interp, y_interp, x_interp, indexing="ij")
     points = np.stack((Z, Y, X), axis=-1)
 
     filename: str = "Data_100.h5"
