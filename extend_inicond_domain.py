@@ -54,7 +54,7 @@ def interp() -> None:
     nz_float: float = nz_original*domain_factor_z * grid_scaling
     if nx_float % 1 != 0.0:
         raise ValueError(f'number of gridpoints in x is not integer: nx_float={nx_float}')
-    if nz_float != 0.0:
+    if nz_float % 1 != 0.0:
         raise ValueError(f'number of gridpoints in x is not integer: nx_float={nx_float}')
     nx: int = int(nx_float)
     nz: int = int(nz_float)
