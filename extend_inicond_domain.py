@@ -11,8 +11,8 @@ dest_dir: Path = Path("/anvil/scratch/x-lwidmer/RUN13")
 def main() -> None:
 
     filename: str = "Data_100.h5"
-    shutil.copy2(source_dir / filename, dest_dir / filename)
     print(f'Using source file at "{source_dir / filename}"')
+    shutil.copy2(source_dir / filename, dest_dir / filename)
     print(f'Coppied source file to "{dest_dir / filename}"')
 
     original_file: h5File
