@@ -38,7 +38,6 @@ def simple() -> None:
 
 
 def interp() -> None:
-
     domain_factor_x: float = 2
     domain_factor_z: float = 2
     ny: int = 288
@@ -53,57 +52,54 @@ def interp() -> None:
     grid_scaling: float = float(ny) / float(ny_original)
     nx_float: float = nx_original * domain_factor_x * grid_scaling
     nz_float: float = nz_original * domain_factor_z * grid_scaling
+
     if nx_float % 1 != 0.0:
-        raise ValueError(
-            f"number of gridpoints in x is not integer: nx_float={nx_float}"
-        )
+        raise ValueError(f"number of gridpoints in x is not integer: {nx_float}")
     if nz_float % 1 != 0.0:
-        raise ValueError(
-            f"number of gridpoints in x is not integer: nx_float={nx_float}"
-        )
+        raise ValueError(f"number of gridpoints in z is not integer: {nz_float}")
+
     nx: int = int(nx_float)
     nz: int = int(nz_float)
     xmax: float = xmax_original * domain_factor_x
     zmax: float = zmax_original * domain_factor_z
 
-    x_original: np.ndarray = np.linspace(0, xmax_original, nx_original)
-    y_original: np.ndarray = np.linspace(0, ymax, ny_original)
-    z_original: np.ndarray = np.linspace(0, zmax_original, nz_original)
+    x_original = np.linspace(0, xmax_original, nx_original)
+    y_original = np.linspace(0, ymax, ny_original)
+    z_original = np.linspace(0, zmax_original, nz_original)
 
-    x: np.ndarray = np.linspace(0, xmax, nx)
-    y: np.ndarray = np.linspace(0, ymax, ny)
-    z: np.ndarray = np.linspace(0, zmax, nz)
+    x = np.linspace(0, xmax, nx)
+    y = np.linspace(0, ymax, ny)
+    z = np.linspace(0, zmax, nz)
 
-    X: np.ndarray
-    Y: np.ndarray
-    Z: np.ndarray
-    Z, Y, X = np.meshgrid(z, y, x)
+    Z, Y, X = np.meshgrid(z, y, x, indexing="ij")
     points = np.stack((Z, Y, X), axis=-1)
 
     filename: str = "Data_100.h5"
     print(f'Using source file at "{source_dir / filename}"')
     shutil.copy2(source_dir / filename, dest_dir / filename)
-    print(f'Coppied source file to "{dest_dir / filename}"')
+    print(f'Copied source file to "{dest_dir / filename}"')
 
-    original_file: h5File
     with (
         h5py.File(source_dir / filename, "r") as original_file,
         h5py.File(dest_dir / filename, "w") as dest_file,
     ):
         for key_char in ["p", "u", "v", "w"]:
-            original: np.ndarray = original_file[key_char][()]  # type: ignore
-            print(f"Original shape: {{{original.shape}}}")
+            original: np.ndarray = original_file[key_char][()] # type: ignore
+            print(f"Original shape: {original.shape}")
+
             interpolator = RegularGridInterpolator(
                 (z_original, y_original, x_original),
                 original,
-                bounds_error=False,
-                fill_value=None,
+                bounds_error=True,   # should never go out of bounds
             )
-            extended: np.ndarray = interpolator(points)
-            print(f"New shape: {{{extended.shape}}}")
             del original
+
+            extended: np.ndarray = interpolator(points)
+            print(f"New shape: {extended.shape}")
+
             dest_file[key_char] = extended
             del extended
+
     print(f'Completed domain size extension / interpolation of "{dest_dir / filename}"')
 
 
