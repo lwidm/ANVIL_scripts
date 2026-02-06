@@ -85,7 +85,7 @@ def interp() -> None:
         h5py.File(dest_dir / filename, "w") as dest_file,
     ):
         for key_char in ["p", "u", "v", "w"]:
-            original: np.ndarray = original_file[vel_char][()]  # type: ignore
+            original: np.ndarray = original_file[key_char][()]  # type: ignore
             print(f'Original shape: {{{original.shape}}}')
             interp = LinearNDInterpolator(list(zip(z_original, y_original, x_original)), original)
             extended: np.ndarray = interp(Z, Y, X)
