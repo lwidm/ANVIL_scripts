@@ -3,7 +3,7 @@ import h5py
 from h5py import File as h5File
 import numpy as np
 import shutil
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import RegularGridInterpolator
 
 source_dir: Path = Path("/anvil/projects/x-ees240016/TurbChannelInit/")
 dest_dir: Path = Path("/anvil/scratch/x-lwidmer/RUN13")
@@ -22,9 +22,9 @@ def simple() -> None:
         h5py.File(dest_dir / filename, "w") as dest_file,
     ):
         p_original: np.ndarray = original_file["p"][()]  # type: ignore
-        print(f'Original shape: {{{p_original.shape}}}')
+        print(f"Original shape: {{{p_original.shape}}}")
         p_extended: np.ndarray = np.tile(p_original, (2, 1, 2))
-        print(f'Extended shape: {{{p_extended.shape}}}')
+        print(f"Extended shape: {{{p_extended.shape}}}")
         del p_original
         dest_file["p"] = p_extended
         del p_extended
@@ -35,6 +35,7 @@ def simple() -> None:
             dest_file[vel_char] = vel_extended
             del vel_extended
     print(f'Completed domain size extension of "{dest_dir / filename}"')
+
 
 def interp() -> None:
 
@@ -50,16 +51,20 @@ def interp() -> None:
     zmax_original: float = 3
 
     grid_scaling: float = float(ny) / float(ny_original)
-    nx_float: float = nx_original*domain_factor_x * grid_scaling
-    nz_float: float = nz_original*domain_factor_z * grid_scaling
+    nx_float: float = nx_original * domain_factor_x * grid_scaling
+    nz_float: float = nz_original * domain_factor_z * grid_scaling
     if nx_float % 1 != 0.0:
-        raise ValueError(f'number of gridpoints in x is not integer: nx_float={nx_float}')
+        raise ValueError(
+            f"number of gridpoints in x is not integer: nx_float={nx_float}"
+        )
     if nz_float % 1 != 0.0:
-        raise ValueError(f'number of gridpoints in x is not integer: nx_float={nx_float}')
+        raise ValueError(
+            f"number of gridpoints in x is not integer: nx_float={nx_float}"
+        )
     nx: int = int(nx_float)
     nz: int = int(nz_float)
-    xmax: float =  xmax_original * domain_factor_x
-    zmax: float =  zmax_original * domain_factor_z
+    xmax: float = xmax_original * domain_factor_x
+    zmax: float = zmax_original * domain_factor_z
 
     x_original: np.ndarray = np.linspace(0, xmax_original, nx_original)
     y_original: np.ndarray = np.linspace(0, ymax, ny_original)
@@ -73,6 +78,7 @@ def interp() -> None:
     Y: np.ndarray
     Z: np.ndarray
     Z, Y, X = np.meshgrid(z, y, x)
+    points = np.stack((Z, Y, X), axis=-1)
 
     filename: str = "Data_100.h5"
     print(f'Using source file at "{source_dir / filename}"')
@@ -86,15 +92,19 @@ def interp() -> None:
     ):
         for key_char in ["p", "u", "v", "w"]:
             original: np.ndarray = original_file[key_char][()]  # type: ignore
-            print(f'Original shape: {{{original.shape}}}')
-            interp = LinearNDInterpolator(list(zip(z_original, y_original, x_original)), original)
-            extended: np.ndarray = interp(Z, Y, X)
-            print(f'New shape: {{{extended.shape}}}')
+            print(f"Original shape: {{{original.shape}}}")
+            interpolator = RegularGridInterpolator(
+                (z_original, y_original, x_original),
+                original,
+                bounds_error=False,
+                fill_value=None,
+            )
+            extended: np.ndarray = interpolator(points)
+            print(f"New shape: {{{extended.shape}}}")
             del original
             dest_file[key_char] = extended
             del extended
     print(f'Completed domain size extension / interpolation of "{dest_dir / filename}"')
-
 
 
 if __name__ == "__main__":
