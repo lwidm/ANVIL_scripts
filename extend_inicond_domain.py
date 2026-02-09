@@ -97,7 +97,7 @@ def interp() -> None:
 
     with (
         h5py.File(src, "r") as original_file,
-        h5py.File(dst, "w") as dest_file,
+        h5py.File(dst, "r+") as dest_file,
     ):
         for key_char in ["p", "u", "v", "w"]:
             original: np.ndarray = original_file[key_char][()]  # type: ignore
@@ -110,7 +110,8 @@ def interp() -> None:
             )
             del original
 
-            # Pre-allocate output dataset in HDF5; interpolate one z-slice at a time
+            # Delete old dataset and create new one with target shape
+            del dest_file[key_char]
             ds = dest_file.create_dataset(
                 key_char, shape=(nz + 1, ny + 1, nx + 1), dtype=np.float64
             )
